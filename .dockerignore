@@ -1,3 +1,50 @@
-.cache
-build
 node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+.vscode
+.idea
+coverage
+.cache
+.DS_Store
+*.log
+
+# Build artifacts
+/build
+/app/build
+/public/build
+/public/_dev
+/app/public/build
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+
+# Development files
+.shopify
+.shopify.lock
+shopify.app.*.toml
+!shopify.app.template.toml
+
+# Database
+/prisma/dev.sqlite
+/prisma/dev.sqlite-journal
+database.sqlite
+
+# Extensions dist
+/extensions/*/dist
+
+# React Router generated
+.react-router
+
+# Documentation
+docs/
+README.md
+CHANGELOG.md

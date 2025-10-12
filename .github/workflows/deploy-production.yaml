@@ -1,0 +1,168 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (typically main)'
+        required: false
+        default: 'main'
+        type: string
+      commit:
+        description: 'Specific commit SHA (optional, overrides branch)'
+        required: false
+        type: string
+      deploy_message:
+        description: 'Deployment message/reason'
+        required: false
+        default: 'Production deployment'
+        type: string
+      confirm_production:
+        description: 'Type "DEPLOY" to confirm production deployment'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Production Deployment
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm_production }}" != "DEPLOY" ]; then
+            echo "❌ Production deployment not confirmed"
+            echo "Please type 'DEPLOY' in the confirmation field"
+            exit 1
+          fi
+          echo "✅ Production deployment confirmed"
+
+  deploy-production:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Deploy to Production (magicsell-v2)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.commit || inputs.branch }}
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup extension dependencies
+      run: |
+        cd extensions
+        for ext_dir in */; do
+          if [ -f "${ext_dir}package.json" ]; then
+            echo "📦 Setting up $(basename "$ext_dir")..."
+            (cd "$ext_dir" && npm install --no-save)
+          fi
+        done
+        cd ..
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: round-folio-468620-j8
+
+    - name: Deploy to Production
+      run: |
+        echo "🚀 Deploying to PRODUCTION environment..."
+        echo "⚠️  This is a PRODUCTION deployment!"
+        if [ -n "${{ inputs.commit }}" ]; then
+          echo "📍 Deploying commit: ${{ inputs.commit }}"
+        else
+          echo "🌿 Deploying branch: ${{ inputs.branch }}"
+        fi
+        echo "📝 Deployment reason: ${{ inputs.deploy_message }}"
+        echo "📋 Current commit info:"
+        git log -1 --pretty=format:"%h - %s (%an, %ar)"
+
+        gcloud builds submit \
+          --config=cloudbuild-production.yaml \
+          --project=round-folio-468620-j8 \
+          .
+
+    - name: Get Cloud Run URL
+      id: get-url
+      run: |
+        URL=$(gcloud run services describe magicsell-v2 \
+          --region=us-central1 \
+          --format='value(status.url)' \
+          --project=round-folio-468620-j8)
+        echo "url=$URL" >> $GITHUB_OUTPUT
+        echo "Production URL: $URL"
+
+    - name: Verify Production deployment
+      run: |
+        echo "⏳ Waiting for production deployment to stabilize..."
+        sleep 30
+        echo "🔍 Verifying production deployment..."
+
+        URL="${{ steps.get-url.outputs.url }}"
+        echo "Testing URL: $URL"
+
+        # Health check
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+          echo "✅ Production Deployment successful!"
+          echo "🌐 Production URL: $URL"
+          echo "📦 Commit: $(git rev-parse --short HEAD)"
+        else
+          echo "⚠️ Deployment completed but health check returned $HTTP_CODE"
+          echo "🌐 Please verify manually at: $URL"
+        fi
+
+    - name: Deployment summary
+      if: always()
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "      PRODUCTION DEPLOYMENT SUMMARY       "
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Environment:  PRODUCTION"
+        echo "Service:      magicsell-v2"
+        echo "URL:          ${{ steps.get-url.outputs.url }}"
+        echo "Branch:       ${{ inputs.commit || inputs.branch }}"
+        echo "Message:      ${{ inputs.deploy_message }}"
+        echo "Status:       ${{ job.status }}"
+        echo "Triggered by: ${{ github.actor }}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    - name: Create GitHub deployment
+      if: success()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const deployment = await github.rest.repos.createDeployment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: '${{ inputs.commit || inputs.branch }}',
+            environment: 'production',
+            description: '${{ inputs.deploy_message }}',
+            auto_merge: false,
+            required_contexts: []
+          });
+
+          await github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: deployment.data.id,
+            state: 'success',
+            environment_url: '${{ steps.get-url.outputs.url }}',
+            description: 'Production deployment successful'
+          });

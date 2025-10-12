@@ -1,0 +1,125 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (e.g. dev, main, feat/xyz)'
+        required: false
+        default: 'main'
+        type: string
+      commit:
+        description: 'Specific commit SHA (optional, overrides branch)'
+        required: false
+        type: string
+      deploy_message:
+        description: 'Deployment message/reason'
+        required: false
+        default: 'Staging deployment'
+        type: string
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging (magicsell-v2-staging)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.commit || inputs.branch }}
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup extension dependencies
+      run: |
+        cd extensions
+        for ext_dir in */; do
+          if [ -f "${ext_dir}package.json" ]; then
+            echo "📦 Setting up $(basename "$ext_dir")..."
+            (cd "$ext_dir" && npm install --no-save)
+          fi
+        done
+        cd ..
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: round-folio-468620-j8
+
+    - name: Deploy to Staging
+      run: |
+        echo "🚀 Deploying to Staging environment..."
+        if [ -n "${{ inputs.commit }}" ]; then
+          echo "📍 Deploying commit: ${{ inputs.commit }}"
+        else
+          echo "🌿 Deploying branch: ${{ inputs.branch }}"
+        fi
+        echo "📝 Deployment reason: ${{ inputs.deploy_message }}"
+        echo "📋 Current commit info:"
+        git log -1 --pretty=format:"%h - %s (%an, %ar)"
+
+        gcloud builds submit \
+          --config=cloudbuild-staging.yaml \
+          --project=round-folio-468620-j8 \
+          .
+
+    - name: Get Cloud Run URL
+      id: get-url
+      run: |
+        URL=$(gcloud run services describe magicsell-v2-staging \
+          --region=us-central1 \
+          --format='value(status.url)' \
+          --project=round-folio-468620-j8)
+        echo "url=$URL" >> $GITHUB_OUTPUT
+        echo "Staging URL: $URL"
+
+    - name: Verify Staging deployment
+      run: |
+        echo "⏳ Waiting for staging deployment to stabilize..."
+        sleep 30
+        echo "🔍 Verifying staging deployment..."
+
+        URL="${{ steps.get-url.outputs.url }}"
+        echo "Testing URL: $URL"
+
+        # Health check
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+          echo "✅ Staging Deployment successful!"
+          echo "🌐 Staging URL: $URL"
+          echo "📦 Commit: $(git rev-parse --short HEAD)"
+        else
+          echo "⚠️ Deployment completed but health check returned $HTTP_CODE"
+          echo "🌐 Please verify manually at: $URL"
+        fi
+
+    - name: Deployment summary
+      if: always()
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "       STAGING DEPLOYMENT SUMMARY         "
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Environment:  Staging"
+        echo "Service:      magicsell-v2-staging"
+        echo "URL:          ${{ steps.get-url.outputs.url }}"
+        echo "Branch:       ${{ inputs.commit || inputs.branch }}"
+        echo "Message:      ${{ inputs.deploy_message }}"
+        echo "Status:       ${{ job.status }}"
+        echo "Triggered by: ${{ github.actor }}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
