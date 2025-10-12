@@ -87,22 +87,39 @@ For more details, see [App Structure Documentation](app/STRUCTURE.md).
 
 ## Environment Management
 
-This project supports multiple environments (dev, staging, production).
+This project supports multiple environments with automatic environment variable loading.
+
+📖 **[Complete Multi-Environment Setup Guide](ENV_SETUP.md)**
 
 **Quick Commands:**
 
 ```bash
-# Development
-npm run dev
+# Development with staging config
+npm run dev:staging
+# or
+bun dev:staging
+
+# Development with production config
+npm run dev:production
 
 # Deploy to staging
-shopify app deploy --config shopify.app.staging.toml
+npm run deploy:staging
 
 # Deploy to production
-shopify app deploy --config shopify.app.production.toml
+npm run deploy:production
+
+# Switch environment manually
+npm run env:staging
+npm run env:production
 ```
 
-For complete guide on managing environments, testing across multiple stores, and deployment strategies, see **[Deployment Guide](docs/DEPLOYMENT.md)**.
+Each environment uses its own configuration:
+- `.env.staging` → Staging credentials
+- `.env.production` → Production credentials
+- `shopify.app.staging.toml` → Staging app config
+- `shopify.app.production.toml` → Production app config
+
+For complete guide on managing environments, testing across multiple stores, and deployment strategies, see **[ENV_SETUP.md](ENV_SETUP.md)** and **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
 ### Authenticating and querying data
 
