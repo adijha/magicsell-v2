@@ -9,11 +9,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    // eslint-disable-next-line no-undef
+    environment: process.env.APP_ENVIRONMENT_NAME || "DEV",
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, environment } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
@@ -24,6 +28,24 @@ export default function App() {
         <s-link href="/app/setup">Setup</s-link>
         <s-link href="/app/settings">Settings</s-link>
       </s-app-nav>
+      {/* Environment Indicator */}
+      {environment && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          padding: '8px 16px',
+          background: '#f0f0f0',
+          border: '2px solid #333',
+          borderRadius: '8px',
+          fontWeight: 'bold',
+          fontSize: '14px',
+          zIndex: 9999,
+          fontFamily: 'monospace'
+        }}>
+          ENV: {environment}
+        </div>
+      )}
       <Outlet />
     </AppProvider>
   );
