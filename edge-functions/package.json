@@ -1,0 +1,46 @@
+{
+  "name": "@apps/recommendation-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for caching product recommendations API - Independent app serving the Shopify app",
+  "main": "src/index.ts",
+  "scripts": {
+    "setup:cloudflare": "node setup-cloudflare.js",
+    "dev": "wrangler dev --env development",
+    "dev:local": "wrangler dev --local --env development",
+    "deploy:dev": "wrangler deploy --env development",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "tail": "wrangler tail --env production",
+    "tail:staging": "wrangler tail --env staging",
+    "tail:dev": "wrangler tail --env development",
+    "types": "wrangler types",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .ts,.tsx",
+    "kv:list": "wrangler kv:key list --namespace-id $KV_NAMESPACE_ID",
+    "kv:clear": "echo 'Use with caution: wrangler kv:bulk delete --namespace-id $KV_NAMESPACE_ID keys.json'"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "cache",
+    "api",
+    "shopify"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1",
+    "wrangler": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

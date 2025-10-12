@@ -1,0 +1,115 @@
+# Cloudflare Worker Configuration for Recommendation Product API
+# Independent worker app that provides intelligent caching for the Shopify app's product recommendations
+
+name = "edge"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Account and deployment settings
+account_id = "cc0fa4349cf0a8ebed1039923aaffd95"
+workers_dev = true
+
+# Routes configuration - map your custom domain
+# Routes are configured per environment below
+
+# KV namespace bindings for caching
+kv_namespaces = [
+  { binding = "CACHE", id = "058ca313ad4a4b6d9c8f5f05190c8e3a", preview_id = "7a941574eb044b359eee640be0aa40a2" }
+]
+
+# Environment variables for production
+[env.production]
+name = "edge-prod"
+[env.production.vars]
+ORIGIN_URL = "https://api.magicsell.ai"
+THINK_ORIGIN_URL = "https://think.magicsell.ai"
+ENVIRONMENT = "production"
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "058ca313ad4a4b6d9c8f5f05190c8e3a"
+[[env.production.routes]]
+pattern = "edge.magicsell.ai/*"
+zone_name = "magicsell.ai"
+[[env.production.routes]]
+pattern = "edge.magicsell.ai"
+zone_name = "magicsell.ai"
+
+# Environment variables for staging
+[env.staging]
+name = "edge-staging"
+[env.staging.vars]
+ORIGIN_URL = "https://api.magicsell.ai"
+THINK_ORIGIN_URL = "https://think.magicsell.ai"
+ENVIRONMENT = "staging"
+[[env.staging.kv_namespaces]]
+binding = "CACHE"
+id = "64fa2de4751041f7a8af19a127b97d6f"
+# No custom routes for staging - uses workers.dev domain
+
+# Environment variables for development
+[env.development]
+name = "edge-dev"
+[env.development.vars]
+ORIGIN_URL = "https://tunnel.magicsell.ai"
+THINK_ORIGIN_URL = "https://think.magicsell.ai"
+ENVIRONMENT = "development"
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "fc3d449e8eb14dfa9eefeafb9765e1e3"
+
+# Build configuration
+# [build]
+# command = "npm install && npm run build"  # Not needed for TypeScript with Wrangler
+
+# Tail consumers for logging (optional)
+# tail_consumers = [
+#   { service = "my-log-service", environment = "production" }
+# ]
+
+# Observability settings
+[observability]
+enabled = true
+
+# Usage model - choose between bundled or unbound
+# For 10M requests/day, bundled is more cost-effective
+# usage_model = "bundled"  # This is configured at the top level, not in observability
+
+# Limits and performance settings (only available on paid plans)
+# [limits]
+# cpu_ms = 50  # 50ms CPU time limit per request
+
+# Compatibility flags for latest features (moved to top level)
+compatibility_flags = [
+  "nodejs_compat"
+]
+
+# Durable Objects bindings (if needed for distributed state)
+# [[durable_objects.bindings]]
+# name = "REQUEST_COALESCING"
+# class_name = "RequestCoalescing"
+# script_name = "edge-prod"
+
+# Service bindings to other workers (if needed)
+# [[services]]
+# binding = "AUTH_SERVICE"
+# service = "auth-worker"
+
+# R2 bucket bindings (if needed for large cache storage)
+# [[r2_buckets]]
+# binding = "CACHE_BUCKET"
+# bucket_name = "recommendation-cache"
+
+# Analytics Engine bindings for custom metrics
+# [[analytics_engine_datasets]]
+# binding = "METRICS"
+# dataset = "recommendation_metrics"
+
+# Environment-specific triggers
+[triggers]
+crons = []
+
+# Development server settings
+[dev]
+port = 8787
+local_protocol = "http"
+upstream_protocol = "https"
