@@ -1,17 +1,21 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file
+// Complete schema for MagicSell migrated from MongoDB/Mongoose
+// See docs/MIGRATION_GUIDE.md for migration instructions
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+// Development: SQLite | Production: PostgreSQL
+// Both work with the same Prisma schema
 datasource db {
   provider = "sqlite"
   url      = "file:dev.sqlite"
 }
+
+// ============================================================================
+// SHOPIFY SESSION (Already exists - keep as is)
+// ============================================================================
 
 model Session {
   id            String    @id
@@ -29,4 +33,217 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+// ============================================================================
+// FUNNEL (Primary collection - most important)
+// OLD: apps/shopify-app/app/db/models/milestoneSchema.ts
+// ============================================================================
+
+model Funnel {
+  id        String   @id @default(cuid())
+  shop      String
+  name      String
+  type      String   // cart-progress-bar, selected-free-gift, cart-cross-sell, etc.
+  active    Boolean  @default(true)
+  deletedAt String?  // ISO string for soft deletes
+  layout    String?  // JSON array stored as string: ["cart-progress-bar-sleeker"]
+
+  // Rollout Configuration (A/B Testing)
+  rolloutPercentage Int     @default(100) // 0-100
+  rolloutEnabled    Boolean @default(false)
+
+  // Shopify Function IDs
+  ProductRecommendDiscountID  String?
+  GiftAutoAddDiscountID       String?
+  ManualAddDiscountID         String?
+  CartProgressBarDiscountID   String?
+  freeShippingID              String?
+  upsellDownsellID            String?
+
+  // Recommendation Configuration
+  checkoutRecommendationType         String?
+  cartRecommendationType             String?
+  productRecommendationType          String?
+  cartRecommendationAutoSuggestion   Boolean @default(false)
+  productRecommendationAutoSuggestion Boolean @default(false)
+
+  // Complex nested data stored as JSON
+  // Groups contain targeting rules
+  groups Json? // Array of {rules: [{ruleType, operator, ruleProducts, etc}]}
+
+  // Cart progress bar milestones
+  milestones Json? // Array of {milestoneID, minValue, milestoneText, rewards, etc}
+
+  // Free gift configurations
+  freeGiftAutoAdd Json? // Array of free gift auto-add config
+  freeGiftSelect  Json? // {items: [], config: {}}
+
+  // Upsell/downsell products
+  upsellDownSellProduct Json?
+
+  // Recommendation items
+  recommendationCheckout Json? // Array of recommendation items
+  recommendationCart     Json? // Array of recommendation items
+  recommendationProduct  Json? // {productItems: [], productConfig: {}}
+
+  block Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for performance
+  @@index([shop, type, active, deletedAt])
+  @@index([shop, updatedAt])
+}
+
+// ============================================================================
+// GLOBAL APP CONFIG (Shop-level settings)
+// OLD: apps/shopify-app/app/db/models/globalAppConfig.ts
+// ============================================================================
+
+model GlobalAppConfig {
+  id       String  @id @default(cuid())
+  shop     String  @unique
+
+  // Coupon configuration
+  CouponName String // Coupon prefix for discounts
+
+  // Shop metadata
+  shopName      String
+  shopEmail     String
+  shopDomain    String
+  shopPlan      String
+  shopCreatedAt DateTime
+
+  // App status
+  isActive Boolean @default(true)
+
+  // Sync tracking
+  lastProductSync     DateTime?
+  lastOrderSync       DateTime?
+  isOrderSyncEnabled  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+}
+
+// ============================================================================
+// OFFER CUSTOMIZATION (Widget styling per shop per type)
+// OLD: apps/shopify-app/app/db/models/offerCustomization.ts
+// ============================================================================
+
+model OfferCustomization {
+  id    String @id @default(cuid())
+  store String // Shop domain
+  type  String // Widget type: cart-progress-bar, cart-cross-sell, etc.
+
+  // All style properties stored as JSON
+  // This allows flexible styling without schema changes
+  styles Json // {fontSize: "14px", color: "#000", backgroundColor: "#fff", etc}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Unique constraint: one customization per store per type
+  @@unique([store, type])
+  @@index([store])
+  @@index([type])
+}
+
+// ============================================================================
+// DEFAULT OFFER STYLES (Default styling templates)
+// OLD: apps/shopify-app/app/db/models/defaultOfferStyles.ts
+// ============================================================================
+
+model DefaultOfferStyle {
+  id   String @id @default(cuid())
+  type String @unique // Widget type
+
+  // All default styles stored as JSON
+  // Different widget types have different style properties
+  styles Json // {cartProgressBar: {...}, selectedFreeGift: {...}, etc}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+}
+
+// ============================================================================
+// ORDER HISTORY (Synced orders for analytics)
+// OLD: apps/shopify-app/app/db/models/orderHistory.ts
+// ============================================================================
+
+model OrderHistory {
+  id   String @id // Shopify order ID
+  shop String
+
+  // Order details
+  name String? // Order name like "#1001"
+
+  // Customer info
+  email String?
+  phone String?
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  processedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  // Financial info
+  totalPrice     String // Stored as string to preserve precision
+  subtotalPrice  String
+  totalTax       String
+  totalDiscounts String
+  totalShipping  String
+  currency       String
+
+  // Status
+  financialStatus   String?
+  fulfillmentStatus String?
+
+  // Metadata
+  tags String?
+  note String?
+
+  // Complex nested data as JSON
+  customer         Json? // {id, email, firstName, lastName, ordersCount, etc}
+  shippingAddress  Json? // {firstName, lastName, address1, city, country, etc}
+  billingAddress   Json? // Same as shipping
+  products         Json  // Array of line items
+
+  syncedAt DateTime @default(now())
+
+  // Indexes for analytics queries
+  @@unique([id, shop])
+  @@index([shop, createdAt])
+  @@index([email])
+}
+
+// ============================================================================
+// FREE GIFT TRACKING (Optional - track gift additions/removals)
+// OLD: apps/shopify-app/app/db/models/freeGiftTracking.ts
+// ============================================================================
+
+model FreeGiftTracking {
+  id String @id @default(cuid())
+
+  shop       String
+  customerId String?
+  orderId    String?
+
+  giftVariantId String
+  giftProductId String
+
+  action String // "added" | "removed"
+
+  createdAt DateTime @default(now())
+
+  @@index([shop, customerId])
+  @@index([shop, orderId])
 }
