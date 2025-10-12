@@ -1,3 +1,6 @@
-name = "magic-theme-extension"
+api_version = "2024-10"
+name = "MagicSell"
+uid = "35d1e15c-ebd7-1b76-1183-39d5bbd67cd22b85663e"
 type = "theme"
-uid = "2b7313e8-6e4b-bbe6-cd71-124e8ddaedee713c6c53"
+
+[extension_points.app_embed]

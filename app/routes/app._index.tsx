@@ -1,247 +1,162 @@
-import { useEffect } from "react";
-import type {
-  ActionFunctionArgs,
-  HeadersFunction,
-  LoaderFunctionArgs,
-} from "react-router";
-import { useFetcher } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+/**
+ * Main Offers Page - Home/Dashboard
+ * Create and manage upsell and cross-sell offers
+ */
+
+import type { LoaderFunctionArgs, HeadersFunction } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-
-  return null;
-};
-
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
-
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
-
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
-
-  const variantResponseJson = await variantResponse.json();
+  const { session } = await authenticate.admin(request);
 
   return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
+    shop: session.shop,
   };
 };
 
-export default function Index() {
-  const fetcher = useFetcher<typeof action>();
-
-  const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
-
-  useEffect(() => {
-    if (fetcher.data?.product?.id) {
-      shopify.toast.show("Product created");
-    }
-  }, [fetcher.data?.product?.id, shopify]);
-
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+export default function OffersPage() {
+  const { shop } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
 
   return (
-    <s-page heading="Shopify app template">
-      <s-button slot="primary-action" onClick={generateProduct}>
-        Generate a product
+    <s-page heading="Offers">
+      {/* Header Actions */}
+      <s-button
+        slot="actions"
+        variant="primary"
+        onClick={() => {
+          // TODO: Navigate to create offer page
+          alert("Create offer functionality coming soon!");
+        }}
+      >
+        Create Offer
       </s-button>
 
-      <s-section heading="Congrats on creating a new Shopify app 🎉">
-        <s-paragraph>
-          This embedded app template uses{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/tools/app-bridge"
-            target="_blank"
-          >
-            App Bridge
-          </s-link>{" "}
-          interface examples like an{" "}
-          <s-link href="/app/additional">additional page in the app nav</s-link>
-          , as well as an{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            Admin GraphQL
-          </s-link>{" "}
-          mutation demo, to provide a starting point for app development.
-        </s-paragraph>
-      </s-section>
-      <s-section heading="Get started with products">
-        <s-paragraph>
-          Generate a product with GraphQL and get the JSON output for that
-          product. Learn more about the{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-            target="_blank"
-          >
-            productCreate
-          </s-link>{" "}
-          mutation in our API references.
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
-          <s-button
-            onClick={generateProduct}
-            {...(isLoading ? { loading: true } : {})}
-          >
-            Generate a product
-          </s-button>
-          {fetcher.data?.product && (
-            <s-button
-              onClick={() => {
-                shopify.intents.invoke?.("edit:shopify/Product", {
-                  value: fetcher.data?.product?.id,
-                });
-              }}
-              target="_blank"
-              variant="tertiary"
-            >
-              Edit product
-            </s-button>
-          )}
-        </s-stack>
-        {fetcher.data?.product && (
-          <s-section heading="productCreate mutation">
-            <s-stack direction="block" gap="base">
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.product, null, 2)}</code>
-                </pre>
-              </s-box>
-
-              <s-heading>productVariantsBulkUpdate mutation</s-heading>
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.variant, null, 2)}</code>
-                </pre>
-              </s-box>
+      {/* Stats Overview */}
+      <s-section>
+        <s-grid columns="3">
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>Total Offers</s-text>
+              <s-text>0</s-text>
+              <s-text>Active offers ready to display</s-text>
             </s-stack>
-          </s-section>
-        )}
+          </s-card>
+
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>This Month</s-text>
+              <s-text>$0.00</s-text>
+              <s-text>Revenue from upsells</s-text>
+            </s-stack>
+          </s-card>
+
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>Conversion Rate</s-text>
+              <s-text>0%</s-text>
+              <s-text>Offer acceptance rate</s-text>
+            </s-stack>
+          </s-card>
+        </s-grid>
       </s-section>
 
-      <s-section slot="aside" heading="App template specs">
-        <s-paragraph>
-          <s-text>Framework: </s-text>
-          <s-link href="https://reactrouter.com/" target="_blank">
-            React Router
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Interface: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/app-home/using-polaris-components"
-            target="_blank"
-          >
-            Polaris web components
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>API: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            GraphQL
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Database: </s-text>
-          <s-link href="https://www.prisma.io/" target="_blank">
-            Prisma
-          </s-link>
-        </s-paragraph>
+      {/* Getting Started / Empty State */}
+      <s-section>
+        <s-banner tone="info">
+          <s-stack direction="block" gap="base">
+            <s-text>Get started with MagicSell</s-text>
+            <s-paragraph>
+              Create your first upsell or cross-sell offer to start increasing your average order value.
+              Our intelligent recommendation engine will help you show the right products to the right customers.
+            </s-paragraph>
+            <s-stack direction="inline" gap="base">
+              <s-button
+                variant="primary"
+                onClick={() => {
+                  alert("Create offer functionality coming soon!");
+                }}
+              >
+                Create Your First Offer
+              </s-button>
+              <s-button
+                variant="secondary"
+                onClick={() => navigate("/app/setup")}
+              >
+                Setup Theme Extension
+              </s-button>
+            </s-stack>
+          </s-stack>
+        </s-banner>
       </s-section>
 
-      <s-section slot="aside" heading="Next steps">
+      {/* Offers List (Empty State) */}
+      <s-section heading="Your Offers">
+        <s-card>
+          <s-stack direction="block" gap="base">
+            <s-text>No offers created yet</s-text>
+            <s-paragraph>
+              Create your first offer to start displaying upsells and cross-sells to your customers.
+            </s-paragraph>
+            <s-button
+              variant="primary"
+              onClick={() => {
+                alert("Create offer functionality coming soon!");
+              }}
+            >
+              Create Offer
+            </s-button>
+          </s-stack>
+        </s-card>
+      </s-section>
+
+      {/* Quick Tips Sidebar */}
+      <s-section slot="aside" heading="Offer Types">
+        <s-stack direction="block" gap="base">
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>Upsell Offers</s-text>
+              <s-paragraph>
+                Encourage customers to purchase a higher-value version of the product they are viewing.
+              </s-paragraph>
+            </s-stack>
+          </s-card>
+
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>Cross-sell Offers</s-text>
+              <s-paragraph>
+                Recommend complementary products that pair well with items in the cart.
+              </s-paragraph>
+            </s-stack>
+          </s-card>
+
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text>Bundle Offers</s-text>
+              <s-paragraph>
+                Create product bundles with special pricing to increase order value.
+              </s-paragraph>
+            </s-stack>
+          </s-card>
+        </s-stack>
+      </s-section>
+
+      <s-section slot="aside" heading="Best Practices">
         <s-unordered-list>
           <s-list-item>
-            Build an{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/getting-started/build-app-example"
-              target="_blank"
-            >
-              example app
-            </s-link>
+            Keep offers relevant to the product being viewed
           </s-list-item>
           <s-list-item>
-            Explore Shopify&apos;s API with{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-              target="_blank"
-            >
-              GraphiQL
-            </s-link>
+            Use high-quality product images
+          </s-list-item>
+          <s-list-item>
+            Test different offer positions
+          </s-list-item>
+          <s-list-item>
+            Monitor performance in Analytics
           </s-list-item>
         </s-unordered-list>
       </s-section>

@@ -1,0 +1,51 @@
+# Template for Shopify App Configuration
+# Copy this file and replace with your actual values
+# DO NOT commit actual configuration files with real client_id
+
+client_id = "your-client-id-here"
+name = "Upsell & Cross Sell MagicSell"
+application_url = "https://your-domain.com/"
+embedded = true
+handle = "your-handle"
+
+[build]
+# Set to false for production to prevent accidental URL updates
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2024-04"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/app/order/create"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_orders,read_product_listings,read_publications,read_themes,write_customers,write_discounts,write_products"
+
+[auth]
+redirect_urls = [
+  "https://your-domain.com/auth/callback",
+  "https://your-domain.com/auth/shopify/callback",
+  "https://your-domain.com/api/auth/callback"
+]
+
+[pos]
+embedded = false

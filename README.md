@@ -1,10 +1,32 @@
-# Shopify App Template - React Router
+# MagicSell - Upsell & Cross Sell Shopify App
 
-This is a template for building a [Shopify app](https://shopify.dev/docs/apps/getting-started) using [React Router](https://reactrouter.com/).  It was forked from the [Shopify Remix app template](https://github.com/Shopify/shopify-app-template-remix) and converted to React Router.
+A powerful Shopify app for upselling and cross-selling, built with [React Router](https://reactrouter.com/) and following Shopify best practices.
 
-Rather than cloning this repo, follow the [Quick Start steps](https://github.com/Shopify/shopify-app-template-react-router#quick-start).
+## Project Overview
 
-Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app-react-router) for more details on the React Router app package.
+This is a complete rebuild of the MagicSell app using modern technologies:
+- **React Router v7** for routing and data loading
+- **TypeScript** for type safety
+- **Shopify Polaris** for UI components
+- **Prisma** for database management
+- **Theme Extensions** for storefront integration
+- **Discount Functions** for dynamic pricing
+
+## Documentation
+
+📚 **[Complete Documentation Index](docs/README.md)**
+
+Quick Links:
+- **[Getting Started](docs/GETTING-STARTED.md)** - Initial setup and first deployment
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Managing staging, production, and multiple environments
+- **[Extension Management](docs/EXTENSIONS.md)** - Understanding extension UIDs and multi-environment deployment
+- **[Theme Extension Deeplink](docs/THEME-EXTENSION-DEEPLINK.md)** - Setting up deeplinks to enable extensions
+- **[App Structure](app/STRUCTURE.md)** - Folder organization and best practices
+- **[Quick Reference](docs/QUICK-REFERENCE.md)** - Command cheat sheet
+
+## Repository
+
+🔗 **GitHub**: [github.com/adijha/magicsell-v2](https://github.com/adijha/magicsell-v2)
 
 ## Upgrading from Remix
 
@@ -39,6 +61,48 @@ shopify app dev
 Press P to open the URL to your app. Once you click install, you can start development.
 
 Local development is powered by [the Shopify CLI](https://shopify.dev/docs/apps/tools/cli). It logs into your partners account, connects to an app, provides environment variables, updates remote config, creates a tunnel and provides commands to generate extensions.
+
+## App Structure
+
+This app follows React Router v7 conventions with an organized folder structure:
+
+```
+app/
+├── routes/              # React Router v7 routes
+├── components/          # Reusable React components
+│   ├── ui/             # Basic UI components
+│   ├── layout/         # Layout components
+│   └── forms/          # Form components
+├── hooks/              # Custom React hooks
+├── services/           # API clients and external services
+│   ├── api/           # Internal API services
+│   └── shopify/       # Shopify-specific services
+├── utils/              # Utility functions
+├── types/              # TypeScript definitions
+├── constants/          # Application constants
+└── styles/             # Global styles
+```
+
+For more details, see [App Structure Documentation](app/STRUCTURE.md).
+
+## Environment Management
+
+This project supports multiple environments (dev, staging, production).
+
+**Quick Commands:**
+
+```bash
+# Development
+npm run dev
+
+# Deploy to staging
+shopify app deploy --config shopify.app.staging.toml
+
+# Deploy to production
+shopify app deploy --config shopify.app.production.toml
+```
+
+For complete guide on managing environments, testing across multiple stores, and deployment strategies, see **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
 ### Authenticating and querying data
 

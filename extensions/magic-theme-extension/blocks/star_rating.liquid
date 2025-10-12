@@ -1,3 +1,9 @@
+{% comment %}
+  Star Rating Block
+  This is a SECTION BLOCK - it can be added to any section in the theme editor
+  To use: Theme Editor > Select a section > Add block > Apps > Star Rating
+{% endcomment %}
+
 {% assign avg_rating = block.settings.product.metafields.demo.avg_rating.value | round %}
 <span style="color:{{ block.settings.colour }}">
   {% render 'stars', rating: avg_rating %}

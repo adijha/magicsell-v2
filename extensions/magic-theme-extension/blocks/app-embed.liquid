@@ -1,0 +1,32 @@
+{% comment %}
+  App Embed - Shows in "App embeds" section
+  This loads globally across the store
+{% endcomment %}
+
+<script>
+  // MagicSell App Embed - Loaded globally
+  console.log('MagicSell app loaded');
+
+  // You can add global JavaScript here
+  // For example: analytics, tracking, etc.
+
+  window.MagicSell = {
+    initialized: true,
+    version: '2.0.0',
+  };
+</script>
+
+{% schema %}
+{
+  "name": "MagicSell",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable MagicSell",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
