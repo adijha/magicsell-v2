@@ -6,11 +6,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Development: SQLite | Production: PostgreSQL
-// Both work with the same Prisma schema
+// Production: PostgreSQL (Cloud SQL)
+// Development: Use DATABASE_URL environment variable
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
