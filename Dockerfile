@@ -1,44 +1,44 @@
-# Multi-stage build for production deployment
-FROM node:20-alpine AS base
+# Multi-stage build for production deployment using Bun
+FROM oven/bun:1 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lock* ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN bun install --production --frozen-lockfile
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN bun x prisma generate
 
 # Build the application
 FROM base AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lock* ./
 COPY prisma ./prisma/
 COPY postcss.config.js ./
+COPY tailwind.config.js ./
 
 # Install all dependencies (including dev)
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Copy source files
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN bun x prisma generate
 
 # Build the app
-RUN npm run build
+RUN bun run build
 
-# Production image
-FROM base AS runner
+# Production image with Node.js runtime
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -53,7 +53,7 @@ COPY --from=deps --chown=reactrouter:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=reactrouter:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=reactrouter:nodejs /app/build ./build
 COPY --from=builder --chown=reactrouter:nodejs /app/public ./public
-COPY --from=builder --chown=reactrouter:nodejs /app/package*.json ./
+COPY --from=builder --chown=reactrouter:nodejs /app/package.json ./
 
 # Copy extensions (for theme extension metadata)
 COPY --chown=reactrouter:nodejs extensions ./extensions
@@ -62,5 +62,8 @@ USER reactrouter
 
 EXPOSE 8080
 
-# Start the app
-CMD ["npm", "run", "docker-start"]
+# Install Node.js for Prisma migrations
+RUN apk add --no-cache nodejs npm
+
+# Start the app with migrations
+CMD ["sh", "-c", "npx prisma migrate deploy && node build/server/index.js"]
