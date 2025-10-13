@@ -44,6 +44,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
+# Install Node.js and npm for Prisma migrations (before switching user)
+RUN apk add --no-cache nodejs npm
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 reactrouter
@@ -61,9 +64,6 @@ COPY --chown=reactrouter:nodejs extensions ./extensions
 USER reactrouter
 
 EXPOSE 8080
-
-# Install Node.js for Prisma migrations
-RUN apk add --no-cache nodejs npm
 
 # Start the app with migrations
 CMD ["sh", "-c", "npx prisma migrate deploy && node build/server/index.js"]
