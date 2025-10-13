@@ -23,6 +23,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY postcss.config.js ./
 
 # Install all dependencies (including dev)
 RUN npm ci
