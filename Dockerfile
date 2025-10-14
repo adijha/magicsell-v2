@@ -66,4 +66,4 @@ USER reactrouter
 EXPOSE 8080
 
 # Start the app with migrations
-CMD ["sh", "-c", "npx prisma migrate deploy && node build/server/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx react-router-serve ./build/server/index.js"]
