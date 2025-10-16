@@ -31,14 +31,14 @@ steps:
       - '--image'
       - 'gcr.io/round-folio-468620-j8/magicsell-v2-staging:$COMMIT_SHA'
       - '--region'
-      - 'us-central1'
+      - 'asia-southeast1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - NODE_ENV=production,APP_ENVIRONMENT_NAME=STAGING,SHOPIFY_API_KEY=f2591d0ad2569399d9bd47dada275546,SHOPIFY_API_SECRET=b21e77bbf2ebb893fa9101b1cc9971a4,SHOPIFY_APP_URL=https://magicsell-v2-staging-576222134721.us-central1.run.app,SCOPES=read_customers;read_orders;read_product_listings;read_publications;read_themes;write_customers;write_discounts;write_products,THEME_EXTENSION_UID=35d1e15c-ebd7-1b76-1183-39d5bbd67cd22b85663e,DATABASE_URL=postgresql://postgres:MagicSellDB2024SecurePass@34.135.85.214:5432/magicsell_staging
+      - NODE_ENV=production,APP_ENVIRONMENT_NAME=STAGING,SHOPIFY_API_KEY=f2591d0ad2569399d9bd47dada275546,SHOPIFY_API_SECRET=b21e77bbf2ebb893fa9101b1cc9971a4,SHOPIFY_APP_URL=https://staging.magicsell.ai,SCOPES=read_customers;read_orders;read_product_listings;read_publications;read_themes;write_customers;write_discounts;write_products,THEME_EXTENSION_UID=35d1e15c-ebd7-1b76-1183-39d5bbd67cd22b85663e,DATABASE_URL=postgresql://postgres:MagicSellDB2024SecurePass@34.135.85.214:5432/magicsell_staging
       - '--set-cloudsql-instances'
-      - 'round-folio-468620-j8:us-central1:magic'
+      - 'round-folio-468620-j8:asia-southeast1:magic'
       - '--memory'
       - '512Mi'
       - '--cpu'

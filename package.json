@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "react-router build",
-    "dev": "shopify app dev",
+    "dev": "shopify app dev --config shopify.app.toml",
     "dev:staging": "cp .env.staging .env && shopify app dev --config shopify.app.staging.toml",
     "dev:production": "cp .env.production .env && shopify app dev --config shopify.app.production.toml",
     "config:link": "shopify app config link",
